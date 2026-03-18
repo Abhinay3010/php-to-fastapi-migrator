@@ -1,15 +1,21 @@
+import sys
+import os
+
+# Add project root to path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 from fastapi.testclient import TestClient
-from fastapi_app.main import app
+from fastapi_app.generated import app   # ✅ important change
 
 client = TestClient(app)
 
-def test_get_users():
-    response = client.get("/get_users")
-    assert response.status_code == 200
+def test_get():
+    res = client.get("/get_users")
+    assert res.status_code == 200
 
-def test_create_user():
-    response = client.post("/create_user", params={
+def test_post():
+    res = client.post("/create_user", params={
         "name": "abhi",
-        "email": "abhi@test.com"
+        "email": "test@test.com"
     })
-    assert response.status_code == 200
+    assert res.status_code == 200
