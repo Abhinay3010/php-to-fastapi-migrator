@@ -16,52 +16,46 @@ endpoints = [f.replace(".php", "") for f in os.listdir(PHP_DIR)]
 
 @pytest.fixture(scope="module", autouse=True)
 def clear_db():
-    """Clear users table before tests for repeatability."""
+    """Clear users table before and after tests for repeatability."""
     import sqlite3
     conn = sqlite3.connect("test.db")
     cursor = conn.cursor()
     cursor.execute("DELETE FROM users")
     conn.commit()
     conn.close()
-    print("🧹 Database cleared before tests")
+    print("🧹 Database cleared before tests\n")
     yield
-    # Optional: clear after tests
     conn = sqlite3.connect("test.db")
     cursor = conn.cursor()
     cursor.execute("DELETE FROM users")
     conn.commit()
     conn.close()
-    print("🧹 Database cleared after tests")
+    print("🧹 Database cleared after tests\n")
 
 
 def test_post_endpoints():
-    """
-    Test all POST endpoints (INSERT) with dummy data.
-    """
+    """Test all POST endpoints (INSERT) with dummy data."""
     for endpoint in endpoints:
         if "create" in endpoint.lower() or "insert" in endpoint.lower():
             print(f"📝 Testing POST /{endpoint} ...")
             res = client.post(f"/{endpoint}", params={"name": "Abhinay", "email": "abhi@example.com"})
             print(f"🔹 Status code: {res.status_code}")
+            print(f"🔹 Response: {res.json()}")
             assert res.status_code == 200, f"POST /{endpoint} failed"
-            json_res = res.json()
-            print(f"🔹 Response: {json_res}")
-            assert "message" in json_res and json_res["message"] == "created"
+            assert res.json().get("message") == "created"
             print(f"✅ POST /{endpoint} passed\n")
 
 
 def test_get_endpoints():
-    """
-    Test all GET endpoints (SELECT) and validate structure.
-    """
+    """Test all GET endpoints (SELECT) and validate structure."""
     for endpoint in endpoints:
         if "get" in endpoint.lower() or "select" in endpoint.lower():
             print(f"📝 Testing GET /{endpoint} ...")
             res = client.get(f"/{endpoint}")
             print(f"🔹 Status code: {res.status_code}")
+            print(f"🔹 Response: {res.json()}")
             assert res.status_code == 200, f"GET /{endpoint} failed"
             json_res = res.json()
-            print(f"🔹 Response: {json_res}")
             assert isinstance(json_res, list), f"GET /{endpoint} did not return a list"
             if len(json_res) > 0:
                 assert all(isinstance(row, list) for row in json_res), f"GET /{endpoint} returned wrong row structure"
@@ -69,9 +63,7 @@ def test_get_endpoints():
 
 
 def test_post_get_integration():
-    """
-    Integration test: POST a user and verify it exists in GET endpoint.
-    """
+    """Integration test: POST a user and verify it exists in GET endpoint."""
     post_endpoint = next((e for e in endpoints if "create" in e.lower()), None)
     get_endpoint = next((e for e in endpoints if "get" in e.lower()), None)
 
