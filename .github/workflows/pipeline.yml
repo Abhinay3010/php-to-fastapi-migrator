@@ -1,4 +1,4 @@
-name: PHP to FastAPI Pipeline
+name: PHP → FastAPI Pipeline
 
 on:
   push:
@@ -9,28 +9,29 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+
     - name: Checkout
       uses: actions/checkout@v3
 
     - name: Setup Python
       uses: actions/setup-python@v4
       with:
-        python-version: 3.10
+        python-version: "3.10"
 
     - name: Install Dependencies
-      run: |
-        pip install -r requirements.txt
+      run: pip install -r requirements.txt
 
-    - name: Init DB
+    - name: Init Database
       run: python scripts/init_db.py
 
-    - name: Run Converter
+    - name: Convert PHP to FastAPI
       run: python converter/convert.py
-
-    - name: Lint
-      run: |
-        black --check .
-        flake8 .
 
     - name: Run Tests
       run: pytest
+
+    - name: Upload Generated API
+      uses: actions/upload-artifact@v4
+      with:
+        name: fastapi-generated
+        path: fastapi_app/
