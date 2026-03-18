@@ -8,13 +8,19 @@ print("🚀 Starting PHP → FastAPI conversion...")
 
 
 def extract_sql(content):
-    # Extract SQL without trailing semicolon
     match = re.search(r'(SELECT .* FROM .*|INSERT INTO .* VALUES .*)', content, re.IGNORECASE)
+    
     if match:
-        sql = match.group(1).strip().rstrip(";")
-        return sql
-    return None
+        sql = match.group(1).strip()
 
+        # 🔥 CLEAN EVERYTHING
+        sql = sql.rstrip(";")      # remove semicolon
+        sql = sql.rstrip('"')      # remove ending double quote
+        sql = sql.rstrip("'")      # remove ending single quote
+
+        return sql
+
+    return None
 
 def generate_code():
     code = """
