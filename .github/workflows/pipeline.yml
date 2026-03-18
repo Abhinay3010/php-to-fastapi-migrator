@@ -33,13 +33,41 @@ jobs:
         echo "🚀 Starting PHP → FastAPI conversion..."
         python converter/convert.py
 
-    - name: Run Tests
+    - name: Run Pytest
       run: |
         echo "🧪 Running Pytest with verbose logs..."
         pytest -s --maxfail=1 --disable-warnings
 
-    - name: Upload Generated API
+    - name: Run FastAPI Server and Test Endpoints
+      run: |
+        echo "🌐 Starting FastAPI server in background..."
+        nohup uvicorn fastapi_app.generated:app --host 0.0.0.0 --port 8000 > fastapi_server.log 2>&1 &
+        SERVER_PID=$!
+        sleep 3  # give server time to start
+
+        echo "🔍 Testing endpoints with curl..."
+        echo "GET /get_users"
+        curl -s http://127.0.0.1:8000/get_users | tee get_users.log
+        echo "POST /create_user"
+        curl -s -X POST "http://127.0.0.1:8000/create_user?name=CIUser&email=ci@example.com" | tee create_user.log
+        echo "GET /get_users after POST"
+        curl -s http://127.0.0.1:8000/get_users | tee get_users_after_post.log
+
+        echo "✅ Endpoint tests done"
+
+        # 🧹 Stop the FastAPI server
+        echo "🛑 Stopping FastAPI server..."
+        kill $SERVER_PID
+        sleep 1
+        echo "✅ FastAPI server stopped"
+
+    - name: Upload Artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: fastapi-generated
-        path: fastapi_app/
+        name: fastapi-artifacts
+        path: |
+          fastapi_app/
+          fastapi_server.log
+          get_users.log
+          create_user.log
+          get_users_after_post.log
