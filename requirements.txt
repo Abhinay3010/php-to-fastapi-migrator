@@ -4,3 +4,4 @@ sqlalchemy
 pytest
 black
 flake8
+httpx
