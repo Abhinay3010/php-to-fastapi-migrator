@@ -6,9 +6,15 @@ OUTPUT_FILE = "fastapi_app/generated.py"
 
 print("🚀 Starting PHP → FastAPI conversion...")
 
+
 def extract_sql(content):
-    match = re.search(r'(SELECT .* FROM .*|INSERT INTO .* VALUES .*);?', content)
-    return match.group(1) if match else None
+    # Extract SQL without trailing semicolon
+    match = re.search(r'(SELECT .* FROM .*|INSERT INTO .* VALUES .*)', content, re.IGNORECASE)
+    if match:
+        sql = match.group(1).strip().rstrip(";")
+        return sql
+    return None
+
 
 def generate_code():
     code = """
@@ -35,32 +41,40 @@ def get_db():
                 print(f"⚠️ No SQL found in {file}")
                 continue
 
-            print(f"🧠 Extracted SQL: {sql}")
+            print(f"🧠 Clean SQL: {sql}")
 
             endpoint = file.replace(".php", "")
 
-            if sql.startswith("SELECT"):
+            # ================= GET =================
+            if sql.upper().startswith("SELECT"):
                 print(f"➡️ Generating GET endpoint: /{endpoint}")
+
                 code += f"""
 @app.get("/{endpoint}")
 def {endpoint}():
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute("{sql}")
-    return cursor.fetchall()
+    cursor.execute(\"\"\"{sql}\"\"\")
+    rows = cursor.fetchall()
+    return [list(row) for row in rows]
 """
 
-            elif sql.startswith("INSERT"):
+            # ================= POST =================
+            elif sql.upper().startswith("INSERT"):
                 print(f"➡️ Generating POST endpoint: /{endpoint}")
+
                 code += f"""
 @app.post("/{endpoint}")
 def {endpoint}(name: str, email: str):
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute("INSERT INTO users (name, email) VALUES (?, ?)", (name, email))
+    cursor.execute(\"\"\"INSERT INTO users (name, email) VALUES (?, ?)\"\"\", (name, email))
     conn.commit()
     return {{"message": "created"}}
 """
+
+            else:
+                print(f"⚠️ Unsupported SQL type in {file}")
 
     os.makedirs("fastapi_app", exist_ok=True)
 
@@ -68,6 +82,7 @@ def {endpoint}(name: str, email: str):
         f.write(code)
 
     print(f"✅ FastAPI code generated at: {OUTPUT_FILE}")
+
 
 if __name__ == "__main__":
     generate_code()
